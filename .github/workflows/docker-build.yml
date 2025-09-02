@@ -1,0 +1,115 @@
+name: Build and Push OmniTry RunPod Container
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'Dockerfile'
+      - 'requirements.txt'
+      - 'runtime_install.sh'
+      - 'gradio_demo.py'
+      - 'omnitry/**'
+      - 'configs/**'
+      - '.github/workflows/docker-build-push.yml'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force rebuild even without changes'
+        type: boolean
+        required: false
+        default: false
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: gemneye/omnitry-runpod
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:master
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYY.MM.DD'}},enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=OmniTry RunPod Container
+            org.opencontainers.image.description=AI-powered virtual try-on system for RunPod deployment. Based on FLUX.1-Fill-dev with OmniTry LoRA fine-tuning for garment fitting and virtual clothing try-on applications.
+            org.opencontainers.image.vendor=gemneye
+            org.opencontainers.image.source={{env.GITHUB_SERVER_URL}}/{{env.GITHUB_REPOSITORY}}
+            org.opencontainers.image.documentation={{env.GITHUB_SERVER_URL}}/{{env.GITHUB_REPOSITORY}}/blob/main/README.MD
+            org.opencontainers.image.url={{env.GITHUB_SERVER_URL}}/{{env.GITHUB_REPOSITORY}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            CREATED=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+
+      - name: Update Docker Hub repository description
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: "AI virtual try-on system optimized for RunPod GPU cloud platform"
+          readme-filepath: ./docs/DOCKERHUB.md
+
+      - name: Security scan
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Image digest
+        if: github.event_name != 'pull_request'
+        run: echo ${{ steps.build.outputs.digest }}
