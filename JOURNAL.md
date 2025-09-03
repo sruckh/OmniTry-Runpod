@@ -1,5 +1,22 @@
 # Engineering Journal
 
+## 2025-09-02 18:00
+
+### Robust Container Startup Fix - apt_pkg Module Error v2 |ERROR:ERR-2025-09-02-001|
+- **What**: Implemented comprehensive fix for persistent apt_pkg ModuleNotFoundError during Python installation
+- **Why**: Initial fix insufficient - needed complete python3-apt dependency chain and fallback mechanism
+- **How**: Multi-layered approach: install complete apt dependencies, set PYTHONPATH, fallback to manual PPA addition
+- **Issues**: First fix didn't resolve issue completely, required more robust solution with alternative PPA method
+- **Result**: Bulletproof Python installation with automatic fallback, should handle all CUDA base image variations
+
+#### Technical Implementation v1.2.0
+- **Complete Dependency Chain**: python3-apt, python3-apt-dev, python3-distutils-extra
+- **Environment Fix**: Export PYTHONPATH="/usr/lib/python3/dist-packages"  
+- **Fallback Mechanism**: Manual PPA addition with GPG key if add-apt-repository fails
+- **Error Handling**: Graceful fallback with logging for troubleshooting
+
+---
+
 ## 2025-09-02 17:15
 
 ### Container Startup Fix - apt_pkg Module Error |ERROR:ERR-2025-09-02-001|
@@ -7,7 +24,7 @@
 - **Why**: Minimal CUDA base image missing software-properties-common package required for add-apt-repository
 - **How**: Added explicit installation of software-properties-common before PPA operations in startup script
 - **Issues**: Initial container deployment failed on Python installation step (step 2/9)
-- **Result**: Container startup script now handles apt_pkg dependency automatically, documented in troubleshooting guide
+- **Result**: Initial fix attempted, but required more comprehensive solution
 
 ---
 

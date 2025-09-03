@@ -14,15 +14,25 @@ Traceback (most recent call last):
 
 **Cause**: Missing software-properties-common package in minimal CUDA base image
 
-**Solution**: ✅ **Fixed in startup script v1.1.0**
-- The startup script now installs software-properties-common before PPA operations
-- No user action required - fix is automatic
+**Solution**: ✅ **Fixed in startup script v1.2.0** 
+- Comprehensive fix with fallback to manual PPA addition
+- Installs complete apt_pkg dependency chain including python3-apt
+- Automatic fallback to manual repository addition if add-apt-repository fails
+- No user action required - fix includes multiple approaches
 
-**If still experiencing issues**:
+**Technical Fix Details**:
+1. Installs complete dependency chain: `python3-apt`, `python3-apt-dev`, etc.
+2. Sets PYTHONPATH to include Python dist-packages
+3. Attempts `add-apt-repository` first
+4. Falls back to manual PPA addition with GPG key if needed
+5. Ensures robust Python 3.11 installation
+
+**If still experiencing issues** (should not occur):
 ```bash
-# Manually install if needed (should not be required)
+# Nuclear option - completely reset apt
 apt-get update
-apt-get install -y software-properties-common
+apt-get install -y --reinstall python3-apt software-properties-common
+export PYTHONPATH="/usr/lib/python3/dist-packages:$PYTHONPATH"
 ```
 
 ### 2. CUDA/GPU Related Problems

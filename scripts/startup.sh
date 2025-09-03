@@ -104,12 +104,36 @@ prepare_system() {
 install_python() {
     show_progress 2 9 "Installing Python 3.11 via deadsnakes PPA"
     
-    # Install software-properties-common first to fix apt_pkg issue
+    # Fix apt_pkg issue with comprehensive approach
+    log "INFO" "Fixing apt_pkg dependencies..."
     apt-get update -qq
-    apt-get install -y -qq software-properties-common
     
-    # Add deadsnakes PPA
-    add-apt-repository -y ppa:deadsnakes/ppa
+    # Install required packages for PPA operations
+    apt-get install -y -qq \
+        software-properties-common \
+        python3-apt \
+        python3-apt-dev \
+        python3-distutils-extra \
+        apt-transport-https \
+        ca-certificates \
+        gnupg \
+        lsb-release
+    
+    # Try to fix apt_pkg module loading
+    export PYTHONPATH="/usr/lib/python3/dist-packages:$PYTHONPATH"
+    
+    # Alternative approach: Add PPA manually if add-apt-repository fails
+    if ! add-apt-repository -y ppa:deadsnakes/ppa 2>/dev/null; then
+        log "WARN" "add-apt-repository failed, adding PPA manually..."
+        
+        # Add GPG key
+        wget -qO - https://keyserver.ubuntu.com/pks/lookup?op=get\&search=0xf23c5a6cf475977595c89f51ba6932366a755776 | apt-key add -
+        
+        # Add repository manually
+        echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/deadsnakes-ppa.list
+        echo "deb-src http://ppa.launchpad.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" >> /etc/apt/sources.list.d/deadsnakes-ppa.list
+    fi
+    
     apt-get update -qq
     
     # Install Python 3.11 and pip
