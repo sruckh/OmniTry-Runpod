@@ -2,7 +2,30 @@
 
 ## 🚨 Common Issues and Solutions
 
-### 1. CUDA/GPU Related Problems
+### 1. Container Startup Issues
+
+#### Symptom: apt_pkg ModuleNotFoundError
+```
+ModuleNotFoundError: No module named 'apt_pkg'
+Traceback (most recent call last):
+  File "/usr/bin/add-apt-repository", line 5, in <module>
+    import apt_pkg
+```
+
+**Cause**: Missing software-properties-common package in minimal CUDA base image
+
+**Solution**: ✅ **Fixed in startup script v1.1.0**
+- The startup script now installs software-properties-common before PPA operations
+- No user action required - fix is automatic
+
+**If still experiencing issues**:
+```bash
+# Manually install if needed (should not be required)
+apt-get update
+apt-get install -y software-properties-common
+```
+
+### 2. CUDA/GPU Related Problems
 
 #### Symptom: Out of VRAM Error
 ```

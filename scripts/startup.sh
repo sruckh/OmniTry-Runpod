@@ -104,6 +104,10 @@ prepare_system() {
 install_python() {
     show_progress 2 9 "Installing Python 3.11 via deadsnakes PPA"
     
+    # Install software-properties-common first to fix apt_pkg issue
+    apt-get update -qq
+    apt-get install -y -qq software-properties-common
+    
     # Add deadsnakes PPA
     add-apt-repository -y ppa:deadsnakes/ppa
     apt-get update -qq

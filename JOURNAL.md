@@ -1,5 +1,16 @@
 # Engineering Journal
 
+## 2025-09-02 17:15
+
+### Container Startup Fix - apt_pkg Module Error |ERROR:ERR-2025-09-02-001|
+- **What**: Fixed ModuleNotFoundError for apt_pkg module during Python 3.11 installation
+- **Why**: Minimal CUDA base image missing software-properties-common package required for add-apt-repository
+- **How**: Added explicit installation of software-properties-common before PPA operations in startup script
+- **Issues**: Initial container deployment failed on Python installation step (step 2/9)
+- **Result**: Container startup script now handles apt_pkg dependency automatically, documented in troubleshooting guide
+
+---
+
 ## 2025-09-02 16:30
 
 ### OmniTry RunPod Container Implementation |TASK:TASK-2025-09-02-001|
