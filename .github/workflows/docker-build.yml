@@ -6,7 +6,7 @@ on:
     paths:
       - 'Dockerfile'
       - 'requirements.txt'
-      - 'runtime_install.sh'
+      - 'scripts/**'
       - 'gradio_demo.py'
       - 'omnitry/**'
       - 'configs/**'
