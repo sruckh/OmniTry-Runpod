@@ -1,0 +1,91 @@
+name: 🚀 Deployment Issue
+description: Report issues with Docker container deployment or GitHub Actions workflows
+title: "[DEPLOY] "
+labels: ["deployment", "docker", "runpod"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a deployment issue! Please provide as much detail as possible.
+        
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What type of deployment issue are you experiencing?
+      options:
+        - Docker build failure
+        - Docker Hub push failure
+        - RunPod deployment issue
+        - GitHub Actions workflow failure
+        - Container runtime error
+        - Other deployment issue
+    validations:
+      required: true
+      
+  - type: textarea
+    id: description
+    attributes:
+      label: Issue Description
+      description: A clear and concise description of the deployment issue
+      placeholder: Describe what went wrong during deployment...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant logs from GitHub Actions, Docker, or RunPod
+      placeholder: |
+        Paste relevant logs here...
+        
+        For GitHub Actions logs: Go to Actions tab > Failed workflow > View logs
+        For Docker logs: Use `docker logs container_name`
+        For RunPod logs: Check pod logs in RunPod interface
+      render: shell
+      
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Information about your deployment environment
+      placeholder: |
+        - Platform: (RunPod GPU type, local Docker, etc.)
+        - Docker version: 
+        - Image tag used:
+        - CUDA version (if applicable):
+        - GPU memory available:
+      
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the deployment issue
+      placeholder: |
+        1. Deploy container with...
+        2. Configure environment with...
+        3. Run command...
+        4. Error occurs...
+        
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen during successful deployment?
+      placeholder: Container should start successfully and...
+      
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify you have completed these steps
+      options:
+        - label: I have checked the existing issues to avoid duplicates
+          required: true
+        - label: I have provided relevant logs and error messages
+          required: true
+        - label: I have tested with the latest container image tag
+          required: false
+        - label: I have verified my RunPod configuration matches requirements
+          required: false
