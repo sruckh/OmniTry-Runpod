@@ -13,7 +13,7 @@ INSTALL_DIR="/workspace"
 OMNITRY_REPO="https://github.com/Kunbyte-AI/OmniTry.git"
 FLUX_MODEL_REPO="https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev"
 LORA_REPO="https://huggingface.co/Kunbyte/OmniTry"
-FLASH_ATTN_WHEEL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl"
+FLASH_ATTN_WHEEL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl"
 
 # Colors for output
 RED='\033[0;31m'
@@ -182,52 +182,23 @@ prepare_system() {
     log "INFO" "System packages updated successfully"
 }
 
-# Install Python 3.11 using deadsnakes PPA
-install_python() {
-    show_progress 2 9 "Installing Python 3.11 via deadsnakes PPA"
+# Setup Python environment (use existing Python 3.10.12 from NVIDIA base image)
+setup_python() {
+    show_progress 2 9 "Setting up Python environment"
     
-    # Fix apt_pkg issue with comprehensive approach
-    log "INFO" "Fixing apt_pkg dependencies..."
+    # Based on NVIDIA base image analysis: Python 3.10.12 is available, but pip3 is missing
+    log "INFO" "Using existing Python 3.10.12 from NVIDIA base image"
+    
+    # Install pip3 which is missing from base image
+    log "INFO" "Installing pip3 (missing from base image)..."
     apt-get update -qq
+    apt-get install -y -qq python3-pip python3-dev python3-venv
     
-    # Install required packages for PPA operations
-    apt-get install -y -qq \
-        software-properties-common \
-        python3-apt \
-        python3-apt-dev \
-        python3-distutils-extra \
-        apt-transport-https \
-        ca-certificates \
-        gnupg \
-        lsb-release
+    # Verify Python and pip installation
+    python3 --version || { log "ERROR" "Python verification failed"; exit 1; }
+    pip3 --version || { log "ERROR" "pip3 installation failed"; exit 1; }
     
-    # Try to fix apt_pkg module loading
-    export PYTHONPATH="/usr/lib/python3/dist-packages:$PYTHONPATH"
-    
-    # Alternative approach: Add PPA manually if add-apt-repository fails
-    if ! add-apt-repository -y ppa:deadsnakes/ppa 2>/dev/null; then
-        log "WARN" "add-apt-repository failed, adding PPA manually..."
-        
-        # Add GPG key
-        wget -qO - https://keyserver.ubuntu.com/pks/lookup?op=get\&search=0xf23c5a6cf475977595c89f51ba6932366a755776 | apt-key add -
-        
-        # Add repository manually
-        echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/deadsnakes-ppa.list
-        echo "deb-src http://ppa.launchpad.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" >> /etc/apt/sources.list.d/deadsnakes-ppa.list
-    fi
-    
-    apt-get update -qq
-    
-    # Install Python 3.11 and pip
-    apt-get install -y -qq python3.11 python3.11-dev python3.11-distutils python3-pip
-    
-    # Set Python 3.11 as default python3
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
-    
-    # Verify installation
-    python3 --version || { log "ERROR" "Python 3.11 installation failed"; exit 1; }
-    
-    log "INFO" "Python 3.11 installed successfully: $(python3 --version)"
+    log "INFO" "Python environment ready: $(python3 --version) with pip3 $(pip3 --version)"
 }
 
 # Install and setup conda
@@ -261,14 +232,15 @@ install_conda() {
     log "INFO" "Miniconda installed successfully: $(conda --version)"
 }
 
-# Install PyTorch with CUDA support
+# Install PyTorch with CUDA support using pip (no conda needed)
 install_pytorch() {
-    show_progress 4 9 "Installing PyTorch with CUDA support"
+    show_progress 3 9 "Installing PyTorch with CUDA support"
     
-    export PATH="/opt/miniconda3/bin:$PATH"
+    # Install PyTorch with the exact specified versions using pip
+    # Based on GOALS.md: pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4
+    log "INFO" "Installing PyTorch 2.4.0 with CUDA 12.4 support via pip..."
     
-    # Install PyTorch with the exact specified versions
-    /opt/miniconda3/bin/conda install -y pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia
+    pip3 install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
     
     # Verify PyTorch installation
     python3 -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')" || {
@@ -281,7 +253,7 @@ install_pytorch() {
 
 # Clone OmniTry repository
 clone_repository() {
-    show_progress 5 9 "Cloning OmniTry repository"
+    show_progress 4 8 "Cloning OmniTry repository"
     
     cd "$INSTALL_DIR"
     
@@ -303,7 +275,7 @@ clone_repository() {
 
 # Download models and create checkpoints
 setup_models() {
-    show_progress 6 9 "Setting up model checkpoints"
+    show_progress 5 8 "Setting up model checkpoints"
     
     cd "$INSTALL_DIR/OmniTry"
     
@@ -347,7 +319,7 @@ setup_models() {
 
 # Install Python requirements
 install_requirements() {
-    show_progress 7 9 "Installing Python requirements"
+    show_progress 6 8 "Installing Python requirements"
     
     cd "$INSTALL_DIR/OmniTry"
     
@@ -366,10 +338,10 @@ install_requirements() {
 
 # Install flash-attention
 install_flash_attention() {
-    show_progress 8 9 "Installing flash-attention wheel"
+    show_progress 7 8 "Installing flash-attention wheel"
     
     # Download and install flash-attention wheel
-    local wheel_file="/tmp/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl"
+    local wheel_file="/tmp/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl"
     
     log "INFO" "Downloading flash-attention wheel..."
     wget -q "$FLASH_ATTN_WHEEL" -O "$wheel_file"
@@ -391,7 +363,7 @@ install_flash_attention() {
 
 # Final setup and validation
 finalize_setup() {
-    show_progress 9 9 "Finalizing setup and validation"
+    show_progress 8 8 "Finalizing setup and validation"
     
     cd "$INSTALL_DIR/OmniTry"
     
@@ -459,10 +431,9 @@ main() {
     # Analyze base image capabilities
     check_base_image
     
-    # Execute installation steps
+    # Execute installation steps (optimized for NVIDIA base image)
     prepare_system
-    install_python
-    install_conda
+    setup_python
     install_pytorch
     clone_repository
     setup_models
@@ -471,14 +442,13 @@ main() {
     finalize_setup
     
     log "INFO" "=== Installation Summary ==="
-    log "INFO" "✅ Python 3.11 installed"
-    log "INFO" "✅ Conda installed"
-    log "INFO" "✅ PyTorch 2.4.0 with CUDA 12.4 installed"
+    log "INFO" "✅ Python 3.10.12 (from NVIDIA base image) + pip3 installed"
+    log "INFO" "✅ PyTorch 2.4.0 with CUDA 12.4 installed (via pip)"
     log "INFO" "✅ OmniTry repository cloned"
     log "INFO" "✅ FLUX.1-Fill-dev model downloaded"
     log "INFO" "✅ LoRA models downloaded"
     log "INFO" "✅ Python requirements installed"
-    log "INFO" "✅ Flash-attention installed"
+    log "INFO" "✅ Flash-attention installed (Python 3.10 wheel)"
     log "INFO" "=== Ready to run OmniTry! ==="
     
     # Show final instructions
