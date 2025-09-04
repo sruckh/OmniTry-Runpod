@@ -67,6 +67,24 @@ show_progress() {
     log "INFO" "[$current/$total] ($percentage%) $description"
 }
 
+# Monitor disk usage during downloads
+check_disk_usage() {
+    local context=$1
+    local available_space=$(df / | tail -1 | awk '{print $4}')
+    local space_gb=$((available_space / 1024 / 1024))
+    local used_percent=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+    
+    log "INFO" "💾 Disk usage $context: ${space_gb}GB available ($used_percent% used)"
+    
+    if [[ $space_gb -lt 20 ]]; then
+        log "ERROR" "🚨 Critical: Less than 20GB available! ($space_gb GB)"
+        log "ERROR" "🚨 Model downloads may fail. Please increase storage."
+        exit 1
+    elif [[ $space_gb -lt 40 ]]; then
+        log "WARN" "⚠️  Warning: Low disk space ($space_gb GB available)"
+    fi
+}
+
 # Check if running as root
 check_root() {
     if [[ $EUID -eq 0 ]]; then
@@ -153,7 +171,16 @@ check_base_image() {
     log "INFO" "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\"')"
     log "INFO" "Architecture: $(uname -m)"
     log "INFO" "Available memory: $(free -h | grep '^Mem:' | awk '{print $2}')"
-    log "INFO" "Available disk space: $(df -h / | tail -1 | awk '{print $4}')"
+    
+    # Check disk space and warn if low
+    local available_space=$(df / | tail -1 | awk '{print $4}')
+    local space_gb=$((available_space / 1024 / 1024))
+    log "INFO" "Available disk space: $(df -h / | tail -1 | awk '{print $4}') (${space_gb}GB)"
+    
+    if [[ $space_gb -lt 80 ]]; then
+        log "WARN" "⚠️  Low disk space detected: ${space_gb}GB available"
+        log "WARN" "⚠️  FLUX models may require 50-100GB. Consider increasing storage."
+    fi
     
     log "INFO" "=== End Base Image Analysis ==="
 }
@@ -284,30 +311,39 @@ setup_models() {
     
     log "INFO" "Downloading FLUX.1-Fill-dev model (this may take a while...)"
     
+    # Check disk usage before starting downloads
+    check_disk_usage "before model downloads"
+    
     # Check if HF_TOKEN is available
     if [[ -z "$HF_TOKEN" ]]; then
         log "ERROR" "HF_TOKEN environment variable is not set. Required for Hugging Face model downloads."
         exit 1
     fi
     
-    # Download FLUX.1-Fill-dev model using git with HF_TOKEN authentication
-    if [[ ! -d "checkpoints/FLUX.1-Fill-dev/.git" ]]; then
+    # Download FLUX.1-Fill-dev model selectively to save storage
+    if [[ ! -d "checkpoints/FLUX.1-Fill-dev" ]]; then
+        log "INFO" "Setting up FLUX.1-Fill-dev model directory structure..."
+        mkdir -p checkpoints/FLUX.1-Fill-dev
         cd checkpoints
-        # Use HF_TOKEN for authentication
-        git clone "https://oauth:$HF_TOKEN@huggingface.co/black-forest-labs/FLUX.1-Fill-dev" FLUX.1-Fill-dev
-        cd FLUX.1-Fill-dev
-        git lfs pull
-        cd ../..
+        
+        # Clone without downloading large files first
+        git clone --filter=blob:none "https://oauth:$HF_TOKEN@huggingface.co/black-forest-labs/FLUX.1-Fill-dev" FLUX.1-Fill-dev-temp
+        cd FLUX.1-Fill-dev-temp
+        
+        # Only download essential model files (not all LFS files)
+        log "INFO" "Downloading essential FLUX model files (transformer, text encoders)..."
+        git lfs pull --include="transformer/*,text_encoder/*,text_encoder_2/*,model_index.json,*.json"
+        
+        # Move the structure to final location
+        cp -r * ../FLUX.1-Fill-dev/
+        cd ..
+        rm -rf FLUX.1-Fill-dev-temp
+        cd ..
+        
+        log "INFO" "FLUX.1-Fill-dev model setup completed (selective download)"
+        check_disk_usage "after FLUX model download"
     else
-        log "INFO" "FLUX.1-Fill-dev already exists, updating..."
-        cd checkpoints/FLUX.1-Fill-dev
-        # Configure git to use HF_TOKEN for pulls
-        git config credential.helper "store --file=.git-credentials"
-        echo "https://oauth:$HF_TOKEN@huggingface.co" > .git-credentials
-        git pull origin main
-        git lfs pull
-        rm .git-credentials  # Clean up credentials file
-        cd ../..
+        log "INFO" "FLUX.1-Fill-dev already exists, skipping download"
     fi
     
     log "INFO" "Downloading OmniTry LoRA models"
@@ -326,6 +362,9 @@ setup_models() {
     else
         log "INFO" "omnitry_v1_clothes.safetensors already exists"
     fi
+    
+    # Final disk usage check
+    check_disk_usage "after all model downloads"
     
     log "INFO" "Model checkpoints setup completed"
 }
