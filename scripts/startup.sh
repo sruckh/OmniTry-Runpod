@@ -223,11 +223,17 @@ setup_python() {
     apt-get update -qq
     apt-get install -y -qq python3-pip python3-dev python3-venv
     
+    # Install huggingface-hub for modern model downloads (replaces git lfs approach)
+    log "INFO" "Installing huggingface-hub for model downloads..."
+    pip3 install --upgrade huggingface_hub
+    
     # Verify Python and pip installation
     python3 --version || { log "ERROR" "Python verification failed"; exit 1; }
     pip3 --version || { log "ERROR" "pip3 installation failed"; exit 1; }
+    huggingface-cli --version || { log "ERROR" "huggingface-cli installation failed"; exit 1; }
     
     log "INFO" "Python environment ready: $(python3 --version) with pip3 $(pip3 --version)"
+    log "INFO" "Hugging Face CLI ready: $(huggingface-cli --version)"
 }
 
 # Install and setup conda
@@ -322,43 +328,44 @@ setup_models() {
         exit 1
     fi
     
-    # Download FLUX.1-Fill-dev model selectively to save storage
+    # Download FLUX.1-Fill-dev model using modern huggingface-cli
     if [[ ! -d "checkpoints/FLUX.1-Fill-dev" ]]; then
-        log "INFO" "Setting up FLUX.1-Fill-dev model directory structure..."
-        mkdir -p checkpoints/FLUX.1-Fill-dev
+        log "INFO" "Downloading FLUX.1-Fill-dev model using huggingface-cli..."
         cd checkpoints
         
-        # Clone without downloading large files first
-        git clone --filter=blob:none "https://oauth:$HF_TOKEN@huggingface.co/black-forest-labs/FLUX.1-Fill-dev" FLUX.1-Fill-dev-temp
-        cd FLUX.1-Fill-dev-temp
+        # Use new huggingface-cli download syntax (replaces deprecated git lfs approach)
+        log "INFO" "Downloading essential model components (~35GB total):"
         
-        # Download essential model files for OmniTry (transformer, text encoders, VAE, configs)
-        log "INFO" "Downloading essential FLUX model components..."
-        log "INFO" "  - Configuration files and model index..."
-        git lfs pull --include="*.json"
+        log "INFO" "  - All configuration files..."
+        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+            --include="*.json" \
+            --local-dir=FLUX.1-Fill-dev \
+            --token="$HF_TOKEN"
         
-        log "INFO" "  - Transformer model (~24GB - this will take a while)..."
-        git lfs pull --include="transformer/*"
+        log "INFO" "  - Transformer model weights (~24GB - this will take a while)..."
+        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+            --include="transformer/*" \
+            --local-dir=FLUX.1-Fill-dev \
+            --token="$HF_TOKEN"
         
-        log "INFO" "  - Text encoders (~10GB)..."
-        git lfs pull --include="text_encoder/*,text_encoder_2/*"
+        log "INFO" "  - Text encoder models (~10GB)..."
+        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+            --include="text_encoder/*" --include="text_encoder_2/*" \
+            --local-dir=FLUX.1-Fill-dev \
+            --token="$HF_TOKEN"
         
         log "INFO" "  - VAE encoder (~335MB)..."
-        git lfs pull --include="vae/*"
+        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+            --include="vae/*" \
+            --local-dir=FLUX.1-Fill-dev \
+            --token="$HF_TOKEN"
         
-        log "INFO" "  - Tokenizers..."
-        git lfs pull --include="tokenizer/*,tokenizer_2/*"
+        log "INFO" "  - Tokenizers and scheduler..."
+        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+            --include="tokenizer/*" --include="tokenizer_2/*" --include="scheduler/*" \
+            --local-dir=FLUX.1-Fill-dev \
+            --token="$HF_TOKEN"
         
-        log "INFO" "  - Scheduler config..."
-        git lfs pull --include="scheduler/*"
-        
-        # Skip the large flux1-fill-dev.safetensors (23.8GB) and ae.safetensors (335MB) at root
-        # These appear to be redundant with the files in specific folders
-        
-        # Move the structure to final location
-        cp -r * ../FLUX.1-Fill-dev/
-        cd ..
-        rm -rf FLUX.1-Fill-dev-temp
         cd ..
         
         # Verify essential files are present
@@ -393,19 +400,27 @@ setup_models() {
     
     log "INFO" "Downloading OmniTry LoRA models"
     
-    # Download OmniTry LoRA models using HF_TOKEN for authentication
+    # Download OmniTry LoRA models using huggingface-cli
+    log "INFO" "Downloading OmniTry LoRA models..."
+    
     if [[ ! -f "checkpoints/omnitry_v1_unified.safetensors" ]]; then
-        log "INFO" "Downloading omnitry_v1_unified.safetensors..."
-        wget -q --header="Authorization: Bearer $HF_TOKEN" "$LORA_REPO/resolve/main/omnitry_v1_unified.safetensors" -O checkpoints/omnitry_v1_unified.safetensors
+        log "INFO" "  - omnitry_v1_unified.safetensors..."
+        huggingface-cli download Kunbyte/OmniTry \
+            --include="omnitry_v1_unified.safetensors" \
+            --local-dir=checkpoints \
+            --token="$HF_TOKEN"
     else
-        log "INFO" "omnitry_v1_unified.safetensors already exists"
+        log "INFO" "  - omnitry_v1_unified.safetensors already exists"
     fi
     
     if [[ ! -f "checkpoints/omnitry_v1_clothes.safetensors" ]]; then
-        log "INFO" "Downloading omnitry_v1_clothes.safetensors..."
-        wget -q --header="Authorization: Bearer $HF_TOKEN" "$LORA_REPO/resolve/main/omnitry_v1_clothes.safetensors" -O checkpoints/omnitry_v1_clothes.safetensors
+        log "INFO" "  - omnitry_v1_clothes.safetensors..."
+        huggingface-cli download Kunbyte/OmniTry \
+            --include="omnitry_v1_clothes.safetensors" \
+            --local-dir=checkpoints \
+            --token="$HF_TOKEN"
     else
-        log "INFO" "omnitry_v1_clothes.safetensors already exists"
+        log "INFO" "  - omnitry_v1_clothes.safetensors already exists"
     fi
     
     # Final disk usage check
