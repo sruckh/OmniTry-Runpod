@@ -10,7 +10,7 @@ on:
       - 'gradio_demo.py'
       - 'omnitry/**'
       - 'configs/**'
-      - '.github/workflows/docker-build-push.yml'
+      - '.github/workflows/docker-build.yml'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
