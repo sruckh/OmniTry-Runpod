@@ -284,32 +284,45 @@ setup_models() {
     
     log "INFO" "Downloading FLUX.1-Fill-dev model (this may take a while...)"
     
-    # Download FLUX.1-Fill-dev model using git with LFS
+    # Check if HF_TOKEN is available
+    if [[ -z "$HF_TOKEN" ]]; then
+        log "ERROR" "HF_TOKEN environment variable is not set. Required for Hugging Face model downloads."
+        exit 1
+    fi
+    
+    # Download FLUX.1-Fill-dev model using git with HF_TOKEN authentication
     if [[ ! -d "checkpoints/FLUX.1-Fill-dev/.git" ]]; then
         cd checkpoints
-        git clone "$FLUX_MODEL_REPO" FLUX.1-Fill-dev
+        # Use HF_TOKEN for authentication
+        git clone "https://oauth:$HF_TOKEN@huggingface.co/black-forest-labs/FLUX.1-Fill-dev" FLUX.1-Fill-dev
         cd FLUX.1-Fill-dev
         git lfs pull
         cd ../..
     else
         log "INFO" "FLUX.1-Fill-dev already exists, updating..."
         cd checkpoints/FLUX.1-Fill-dev
+        # Configure git to use HF_TOKEN for pulls
+        git config credential.helper "store --file=.git-credentials"
+        echo "https://oauth:$HF_TOKEN@huggingface.co" > .git-credentials
         git pull origin main
         git lfs pull
+        rm .git-credentials  # Clean up credentials file
         cd ../..
     fi
     
     log "INFO" "Downloading OmniTry LoRA models"
     
-    # Download OmniTry LoRA models
+    # Download OmniTry LoRA models using HF_TOKEN for authentication
     if [[ ! -f "checkpoints/omnitry_v1_unified.safetensors" ]]; then
-        wget -q "$LORA_REPO/resolve/main/omnitry_v1_unified.safetensors" -O checkpoints/omnitry_v1_unified.safetensors
+        log "INFO" "Downloading omnitry_v1_unified.safetensors..."
+        wget -q --header="Authorization: Bearer $HF_TOKEN" "$LORA_REPO/resolve/main/omnitry_v1_unified.safetensors" -O checkpoints/omnitry_v1_unified.safetensors
     else
         log "INFO" "omnitry_v1_unified.safetensors already exists"
     fi
     
     if [[ ! -f "checkpoints/omnitry_v1_clothes.safetensors" ]]; then
-        wget -q "$LORA_REPO/resolve/main/omnitry_v1_clothes.safetensors" -O checkpoints/omnitry_v1_clothes.safetensors
+        log "INFO" "Downloading omnitry_v1_clothes.safetensors..."
+        wget -q --header="Authorization: Bearer $HF_TOKEN" "$LORA_REPO/resolve/main/omnitry_v1_clothes.safetensors" -O checkpoints/omnitry_v1_clothes.safetensors
     else
         log "INFO" "omnitry_v1_clothes.safetensors already exists"
     fi
