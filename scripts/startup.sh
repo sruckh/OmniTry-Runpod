@@ -76,6 +76,88 @@ check_root() {
     fi
 }
 
+# Check what's already available in the base image
+check_base_image() {
+    log "INFO" "=== NVIDIA Base Image Analysis ==="
+    
+    # Check Python installations
+    log "INFO" "--- Python Analysis ---"
+    if command -v python3 &> /dev/null; then
+        log "INFO" "Python3 available: $(python3 --version)"
+        log "INFO" "Python3 location: $(which python3)"
+    else
+        log "INFO" "Python3 not found"
+    fi
+    
+    if command -v python &> /dev/null; then
+        log "INFO" "Python available: $(python --version)"
+        log "INFO" "Python location: $(which python)"
+    else
+        log "INFO" "Python not found"
+    fi
+    
+    # Check pip
+    if command -v pip3 &> /dev/null; then
+        log "INFO" "pip3 available: $(pip3 --version)"
+    else
+        log "INFO" "pip3 not found"
+    fi
+    
+    # Check conda
+    log "INFO" "--- Conda Analysis ---"
+    if command -v conda &> /dev/null; then
+        log "INFO" "Conda available: $(conda --version)"
+        log "INFO" "Conda location: $(which conda)"
+        log "INFO" "Conda environments:"
+        conda env list 2>/dev/null || log "INFO" "Could not list conda environments"
+    else
+        log "INFO" "Conda not found"
+    fi
+    
+    # Check CUDA
+    log "INFO" "--- CUDA Analysis ---"
+    if command -v nvidia-smi &> /dev/null; then
+        log "INFO" "NVIDIA SMI available:"
+        nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits 2>/dev/null || log "WARN" "Could not query GPU info"
+    else
+        log "INFO" "nvidia-smi not found"
+    fi
+    
+    if command -v nvcc &> /dev/null; then
+        log "INFO" "NVCC available: $(nvcc --version | grep release)"
+    else
+        log "INFO" "nvcc not found"
+    fi
+    
+    # Check PyTorch
+    log "INFO" "--- PyTorch Analysis ---"
+    if python3 -c "import torch; print(f'PyTorch {torch.__version__} (CUDA: {torch.cuda.is_available()})')" 2>/dev/null; then
+        log "INFO" "PyTorch is already installed and working"
+        python3 -c "import torch; print(f'CUDA devices: {torch.cuda.device_count()}')" 2>/dev/null || true
+    else
+        log "INFO" "PyTorch not found or not working"
+    fi
+    
+    # Check other ML libraries
+    log "INFO" "--- ML Libraries Analysis ---"
+    for lib in numpy scipy sklearn transformers; do
+        if python3 -c "import $lib; print(f'$lib available')" 2>/dev/null; then
+            log "INFO" "$lib is available"
+        else
+            log "INFO" "$lib not found"
+        fi
+    done
+    
+    # Check system info
+    log "INFO" "--- System Info ---"
+    log "INFO" "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\"')"
+    log "INFO" "Architecture: $(uname -m)"
+    log "INFO" "Available memory: $(free -h | grep '^Mem:' | awk '{print $2}')"
+    log "INFO" "Available disk space: $(df -h / | tail -1 | awk '{print $4}')"
+    
+    log "INFO" "=== End Base Image Analysis ==="
+}
+
 # System update and preparation
 prepare_system() {
     show_progress 1 9 "Updating system packages"
@@ -373,6 +455,9 @@ main() {
     
     # Check prerequisites
     check_root
+    
+    # Analyze base image capabilities
+    check_base_image
     
     # Execute installation steps
     prepare_system
