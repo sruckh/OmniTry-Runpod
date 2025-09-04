@@ -177,9 +177,11 @@ check_base_image() {
     local space_gb=$((available_space / 1024 / 1024))
     log "INFO" "Available disk space: $(df -h / | tail -1 | awk '{print $4}') (${space_gb}GB)"
     
-    if [[ $space_gb -lt 80 ]]; then
+    if [[ $space_gb -lt 50 ]]; then
         log "WARN" "⚠️  Low disk space detected: ${space_gb}GB available"
-        log "WARN" "⚠️  FLUX models may require 50-100GB. Consider increasing storage."
+        log "WARN" "⚠️  FLUX models require ~35GB (selective download). Consider increasing storage."
+    elif [[ $space_gb -lt 80 ]]; then
+        log "INFO" "✅ Sufficient disk space for selective FLUX download (~35GB required)"
     fi
     
     log "INFO" "=== End Base Image Analysis ==="
@@ -330,9 +332,28 @@ setup_models() {
         git clone --filter=blob:none "https://oauth:$HF_TOKEN@huggingface.co/black-forest-labs/FLUX.1-Fill-dev" FLUX.1-Fill-dev-temp
         cd FLUX.1-Fill-dev-temp
         
-        # Only download essential model files (not all LFS files)
-        log "INFO" "Downloading essential FLUX model files (transformer, text encoders)..."
-        git lfs pull --include="transformer/*,text_encoder/*,text_encoder_2/*,model_index.json,*.json"
+        # Download essential model files for OmniTry (transformer, text encoders, VAE, configs)
+        log "INFO" "Downloading essential FLUX model components..."
+        log "INFO" "  - Configuration files and model index..."
+        git lfs pull --include="*.json"
+        
+        log "INFO" "  - Transformer model (~24GB - this will take a while)..."
+        git lfs pull --include="transformer/*"
+        
+        log "INFO" "  - Text encoders (~10GB)..."
+        git lfs pull --include="text_encoder/*,text_encoder_2/*"
+        
+        log "INFO" "  - VAE encoder (~335MB)..."
+        git lfs pull --include="vae/*"
+        
+        log "INFO" "  - Tokenizers..."
+        git lfs pull --include="tokenizer/*,tokenizer_2/*"
+        
+        log "INFO" "  - Scheduler config..."
+        git lfs pull --include="scheduler/*"
+        
+        # Skip the large flux1-fill-dev.safetensors (23.8GB) and ae.safetensors (335MB) at root
+        # These appear to be redundant with the files in specific folders
         
         # Move the structure to final location
         cp -r * ../FLUX.1-Fill-dev/
@@ -340,7 +361,31 @@ setup_models() {
         rm -rf FLUX.1-Fill-dev-temp
         cd ..
         
+        # Verify essential files are present
+        log "INFO" "Verifying FLUX model files..."
+        local missing_files=()
+        
+        if [[ ! -f "FLUX.1-Fill-dev/transformer/config.json" ]]; then
+            missing_files+=("transformer/config.json")
+        fi
+        if [[ ! -f "FLUX.1-Fill-dev/text_encoder/config.json" ]]; then
+            missing_files+=("text_encoder/config.json")  
+        fi
+        if [[ ! -f "FLUX.1-Fill-dev/model_index.json" ]]; then
+            missing_files+=("model_index.json")
+        fi
+        
+        if [[ ${#missing_files[@]} -gt 0 ]]; then
+            log "ERROR" "Missing essential FLUX model files:"
+            for file in "${missing_files[@]}"; do
+                log "ERROR" "  - $file"
+            done
+            log "ERROR" "Model download may have failed. Check HF_TOKEN permissions and network connectivity."
+            exit 1
+        fi
+        
         log "INFO" "FLUX.1-Fill-dev model setup completed (selective download)"
+        log "INFO" "Downloaded components: transformer, text_encoders, VAE, tokenizers, scheduler"
         check_disk_usage "after FLUX model download"
     else
         log "INFO" "FLUX.1-Fill-dev already exists, skipping download"
