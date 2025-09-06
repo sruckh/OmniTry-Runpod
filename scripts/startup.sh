@@ -225,15 +225,15 @@ setup_python() {
     
     # Install huggingface-hub for modern model downloads (replaces git lfs approach)
     log "INFO" "Installing huggingface-hub for model downloads..."
-    pip3 install --upgrade huggingface_hub
+    pip3 install --upgrade "huggingface_hub[cli]"
     
     # Verify Python and pip installation
     python3 --version || { log "ERROR" "Python verification failed"; exit 1; }
     pip3 --version || { log "ERROR" "pip3 installation failed"; exit 1; }
-    huggingface-cli --version || { log "ERROR" "huggingface-cli installation failed"; exit 1; }
+    hf --help >/dev/null 2>&1 || { log "ERROR" "Hugging Face CLI installation failed"; exit 1; }
     
     log "INFO" "Python environment ready: $(python3 --version) with pip3 $(pip3 --version)"
-    log "INFO" "Hugging Face CLI ready: $(huggingface-cli --version)"
+    log "INFO" "Hugging Face CLI ready: hf command available"
 }
 
 # Install and setup conda
@@ -337,31 +337,31 @@ setup_models() {
         log "INFO" "Downloading essential model components (~35GB total):"
         
         log "INFO" "  - All configuration files..."
-        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+        hf download black-forest-labs/FLUX.1-Fill-dev \
             --include="*.json" \
             --local-dir=FLUX.1-Fill-dev \
             --token="$HF_TOKEN"
         
         log "INFO" "  - Transformer model weights (~24GB - this will take a while)..."
-        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+        hf download black-forest-labs/FLUX.1-Fill-dev \
             --include="transformer/*" \
             --local-dir=FLUX.1-Fill-dev \
             --token="$HF_TOKEN"
         
         log "INFO" "  - Text encoder models (~10GB)..."
-        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+        hf download black-forest-labs/FLUX.1-Fill-dev \
             --include="text_encoder/*" --include="text_encoder_2/*" \
             --local-dir=FLUX.1-Fill-dev \
             --token="$HF_TOKEN"
         
         log "INFO" "  - VAE encoder (~335MB)..."
-        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+        hf download black-forest-labs/FLUX.1-Fill-dev \
             --include="vae/*" \
             --local-dir=FLUX.1-Fill-dev \
             --token="$HF_TOKEN"
         
         log "INFO" "  - Tokenizers and scheduler..."
-        huggingface-cli download black-forest-labs/FLUX.1-Fill-dev \
+        hf download black-forest-labs/FLUX.1-Fill-dev \
             --include="tokenizer/*" --include="tokenizer_2/*" --include="scheduler/*" \
             --local-dir=FLUX.1-Fill-dev \
             --token="$HF_TOKEN"
@@ -405,7 +405,7 @@ setup_models() {
     
     if [[ ! -f "checkpoints/omnitry_v1_unified.safetensors" ]]; then
         log "INFO" "  - omnitry_v1_unified.safetensors..."
-        huggingface-cli download Kunbyte/OmniTry \
+        hf download Kunbyte/OmniTry \
             --include="omnitry_v1_unified.safetensors" \
             --local-dir=checkpoints \
             --token="$HF_TOKEN"
@@ -415,7 +415,7 @@ setup_models() {
     
     if [[ ! -f "checkpoints/omnitry_v1_clothes.safetensors" ]]; then
         log "INFO" "  - omnitry_v1_clothes.safetensors..."
-        huggingface-cli download Kunbyte/OmniTry \
+        hf download Kunbyte/OmniTry \
             --include="omnitry_v1_clothes.safetensors" \
             --local-dir=checkpoints \
             --token="$HF_TOKEN"
