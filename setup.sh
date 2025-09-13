@@ -17,13 +17,9 @@ apt-get update && apt-get install -y \
     curl \
     ca-certificates
 
-# Install Python 3.11
-echo "🐍 Installing Python 3.11..."
-add-apt-repository ppa:deadsnakes/ppa -y
-apt-get update
-apt-get install -y python3.11 python3.11-pip python3.11-dev python3.11-distutils
-update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
-update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+# Install OS vendor Python packages
+echo "🐍 Installing Python and pip..."
+apt-get install -y python python3-pip
 
 # Install miniconda
 echo "🐍 Installing Miniconda..."
@@ -74,6 +70,8 @@ python -m pip install -r requirements.txt
 
 # Install flash-attention wheel
 echo "⚡ Installing Flash Attention..."
+# Note: If Python version mismatch occurs, check available wheels at:
+# https://github.com/Dao-AILab/flash-attention/releases/tag/v2.6.3
 python -m pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl
 
 # Set environment variables for Gradio

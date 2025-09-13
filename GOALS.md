@@ -8,10 +8,8 @@
  - Install pytorch using this command:  conda install pytorch\==2.4.0 torchvision\==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia"
  - RUN apt-get update && \
         apt-get install -y software-properties-common && \
-        add-apt-repository ppa:deadsnakes/ppa && \
         apt-get update && \
-        apt-get install -y python3.11 python3-pip
- - RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+        apt-get install -y python python3-pip
  - clone github repository https://github.com/Kunbyte-AI/OmniTry.git
  - cd OmniTry
  - 1. Create the checkpoint directory:  `mkdir checkpoints`
