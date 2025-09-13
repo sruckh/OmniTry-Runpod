@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  omnitry:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gemneye/omnitry-runpod:latest
+    container_name: omnitry-runpod
+    ports:
+      - "7860:7860"
+    environment:
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+      # Add HF_TOKEN if authentication needed for model downloads
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      # Optional: mount local directory for persistent checkpoints
+      - ./checkpoints:/workspace/OmniTry/checkpoints
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+# Note: This docker-compose.yml is for local testing only
+# RunPod deployment uses the Docker image directly
