@@ -17,9 +17,9 @@ apt-get update && apt-get install -y \
     curl \
     ca-certificates
 
-# Install OS vendor Python packages
-echo "🐍 Installing Python and pip..."
-apt-get install -y python python3-pip
+# Ensure pip is available (Python3 already included in base image)
+echo "🐍 Ensuring pip is available..."
+apt-get install -y python3-pip
 
 # Install miniconda
 echo "🐍 Installing Miniconda..."
