@@ -48,9 +48,9 @@ echo "📋 Accepting conda Terms of Service..."
 /workspace/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 /workspace/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
-# Install PyTorch with specific versions
-echo "🔥 Installing PyTorch..."
-/workspace/miniconda/bin/conda install -y pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia
+# Install PyTorch with specific versions and Python 3.10
+echo "🔥 Installing PyTorch with Python 3.10..."
+/workspace/miniconda/bin/conda install -y python=3.10 pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia
 
 # Clone OmniTry repository
 echo "📥 Cloning OmniTry repository..."
