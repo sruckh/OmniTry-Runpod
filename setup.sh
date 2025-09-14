@@ -36,6 +36,11 @@ echo 'export PATH="/workspace/miniconda/bin:$PATH"' >> ~/.bashrc
 /workspace/miniconda/bin/conda init bash
 source ~/.bashrc
 
+# Accept conda Terms of Service
+echo "📋 Accepting conda Terms of Service..."
+/workspace/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+/workspace/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
 # Install PyTorch with specific versions
 echo "🔥 Installing PyTorch..."
 /workspace/miniconda/bin/conda install -y pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia
