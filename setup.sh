@@ -52,7 +52,7 @@ mkdir -p checkpoints
 
 # Install huggingface_hub for downloading models
 echo "🤗 Installing HuggingFace Hub..."
-python -m pip install huggingface_hub[cli]
+python3 -m pip install huggingface_hub[cli]
 
 # Download models using new hf CLI
 echo "📦 Downloading FLUX.1-Fill-dev model..."
@@ -66,13 +66,12 @@ hf download Kunbyte/OmniTry omnitry_v1_clothes.safetensors --local-dir checkpoin
 
 # Install requirements
 echo "📦 Installing Python requirements..."
-python -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 
 # Install flash-attention wheel
 echo "⚡ Installing Flash Attention..."
-# Note: If Python version mismatch occurs, check available wheels at:
-# https://github.com/Dao-AILab/flash-attention/releases/tag/v2.6.3
-python -m pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl
+# Note: Using Python 3.10 wheel to match base image Python version
+python3 -m pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
 
 # Set environment variables for Gradio
 export GRADIO_SERVER_NAME="0.0.0.0"
@@ -81,4 +80,4 @@ export GRADIO_SERVER_PORT="7860"
 echo "✅ Setup complete! Starting OmniTry Gradio interface..."
 
 # Start the application
-python gradio_demo.py
+python3 gradio_demo.py

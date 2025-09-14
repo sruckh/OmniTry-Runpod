@@ -17,7 +17,7 @@
  - 2.	Download the  [FLUX.1-Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)  into  `checkpoints/FLUX.1-Fill-dev`
  - 3. Download the [LoRA of OmniTry](https://huggingface.co/Kunbyte/OmniTry) into `checkpoints/omnitry_v1_unified.safetensors`.  Also download `omnitry_v1_clothes.safetensors`
  - 4. pip install -r requirements.txt
- - 5. Install https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl
+ - 5. Install https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
  - 6. The entrypoint for the container is: python gradio_demo.py
 
 **Changes that are necessary**
