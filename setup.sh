@@ -24,6 +24,13 @@ apt-get install -y python3-pip
 # Install miniconda
 echo "🐍 Installing Miniconda..."
 cd /workspace
+
+# Remove existing miniconda if present
+if [ -d "/workspace/miniconda" ]; then
+    echo "🗑️ Removing existing miniconda installation..."
+    rm -rf /workspace/miniconda
+fi
+
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
 bash miniconda.sh -b -p /workspace/miniconda
 rm miniconda.sh
