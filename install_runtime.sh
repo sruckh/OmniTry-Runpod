@@ -52,7 +52,7 @@ log_info "Installing system dependencies..."
 apt-get update
 apt-get install -y software-properties-common
 apt-get update
-apt-get install -y python python3-pip git wget curl
+apt-get install -y python-is-python3 python3-pip git wget curl
 
 # Step 2: Install miniconda if not already installed
 if [ ! -d "$HOME/miniconda3" ]; then
