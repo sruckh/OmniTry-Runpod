@@ -85,7 +85,20 @@ if [ -d "$REPO_DIR" ]; then
 
         # Check if remote is correct
         current_remote=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ "$current_remote" == *"/Kunbyte-AI/OmniTry.git" ]]
+        REPO_URL="https://github.com/sruckh/OmniTry-Runpod.git"
+REPO_DIR="OmniTry"
+
+if [ -d "$REPO_DIR" ]; then
+    log_warn "Repository directory $REPO_DIR already exists"
+
+    # Check if it's a git repository
+    if [ -d "$REPO_DIR/.git" ]; then
+        log_info "Git repository found, checking status..."
+        cd $REPO_DIR
+
+        # Check if remote is correct
+        current_remote=$(git remote get-url origin 2>/dev/null || echo "")
+        if [[ "$current_remote" == *"/sruckh/OmniTry-Runpod.git" ]]; then
 then
             log_info "Correct remote already configured"
             # Try to pull latest changes if possible
