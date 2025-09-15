@@ -53,7 +53,7 @@ retry_command() {
 # Step 1: Install system dependencies
 log_info "Installing system dependencies..."
 apt-get update
-apt-get install -y software-properties-common wget git curl python python3-pip
+apt-get install -y software-properties-common wget git curl python3 python3-pip
 
 # Step 2: Install miniconda if not already installed
 if [ ! -d "/workspace/miniconda" ]; then
@@ -207,4 +207,4 @@ fi
 log_info "✅ Setup complete! Starting OmniTry Gradio interface..."
 
 # Start the application
-exec python3 gradio_demo.py
+exec python gradio_demo.py
