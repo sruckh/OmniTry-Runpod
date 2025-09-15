@@ -117,7 +117,9 @@ mkdir -p checkpoints
 
 # Step 6: Download Hugging Face models
 log_info "Setting up Hugging Face CLI..."
-pip install huggingface-hub[cli]
+pip install huggingface-hub
+log_info "Installing hf_transfer for faster downloads..."
+pip install hf_transfer[cli]
 
 export HF_HUB_ENABLE_HF_TRANSFER=1
 
