@@ -4,20 +4,25 @@
 
 **Installation steps at runtime for OmniTry**  REPEAT!!!! EVERYTHING BELOW GETS DONE AFTER THE CONTAINER HAS STARTED!!!!
 
+**NEW ROBUST INSTALLATION METHOD:**
+- Run the robust installation script: `./install_runtime.sh`
+- This script handles all installation steps with error recovery and retry logic
+
+**MANUAL INSTALLATION STEPS (if script fails):**
  - install miniconda
  - Install pytorch using this command:  conda install pytorch\==2.4.0 torchvision\==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia"
  - RUN apt-get update && \
         apt-get install -y software-properties-common && \
         apt-get update && \
         apt-get install -y python python3-pip
- - clone github repository https://github.com/Kunbyte-AI/OmniTry.git
+ - clone github repository https://github.com/Kunbyte-AI/OmniTry.git (with directory existence check)
  - cd OmniTry
  - 1. Create the checkpoint directory:  `mkdir checkpoints`
 **ask context7 how to use hf to download huggingface models now that huggingface-cli has been deprecated**
  - 2.	Download the  [FLUX.1-Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)  into  `checkpoints/FLUX.1-Fill-dev`
  - 3. Download the [LoRA of OmniTry](https://huggingface.co/Kunbyte/OmniTry) into `checkpoints/omnitry_v1_unified.safetensors`.  Also download `omnitry_v1_clothes.safetensors`
  - 4. pip install -r requirements.txt
- - 5. Install https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+ - 5. Install Flash Attention with retry logic: `pip install --no-cache-dir --timeout=600 https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl`
  - 6. The entrypoint for the container is: python gradio_demo.py
 
 **Changes that are necessary**
