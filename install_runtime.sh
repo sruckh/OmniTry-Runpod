@@ -157,7 +157,7 @@ download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_clothes"
 
 # Step 7: Install Python requirements
 log_info "Installing Python requirements..."
-retry_command "pip install -r requirements.txt"
+retry_command "pip install --timeout=600 --resume-retries 5 -r requirements.txt"
 
 # Step 8: Install Flash Attention with retry logic
 log_info "Installing Flash Attention..."
