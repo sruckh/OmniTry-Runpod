@@ -80,6 +80,10 @@ hf download Kunbyte/OmniTry omnitry_v1_clothes.safetensors --local-dir checkpoin
 echo "📦 Installing Python requirements..."
 python3 -m pip install -r requirements.txt
 
+# Install additional required packages
+echo "📦 Installing additional dependencies..."
+python3 -m pip install protobuf
+
 # Install flash-attention wheel
 echo "⚡ Installing Flash Attention..."
 # Note: Using Python 3.10 wheel to match base image Python version
