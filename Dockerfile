@@ -7,14 +7,15 @@ FROM nvidia/cuda:12.3.2-cudnn9-runtime-ubuntu22.04
 # Set working directory
 WORKDIR /workspace
 
-# Copy the runtime setup script
-COPY setup.sh /workspace/setup.sh
+# Copy necessary files
+COPY install_runtime.sh /workspace/install_runtime.sh
+COPY configs /workspace/configs
 
 # Make setup script executable
-RUN chmod +x /workspace/setup.sh
+RUN chmod +x /workspace/install_runtime.sh
 
 # Expose Gradio port
 EXPOSE 7860
 
 # Default command - runs setup then starts the application
-CMD ["/bin/bash", "/workspace/setup.sh"]
+CMD ["/bin/bash", "/workspace/install_runtime.sh"]
