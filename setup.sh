@@ -194,8 +194,8 @@ download_model_directory() {
 
 # Download models
 download_model_directory "black-forest-labs/FLUX.1-Fill-dev" "checkpoints/FLUX.1-Fill-dev"
-download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_unified"
-download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_clothes"
+download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_unified" "omnitry_v1_unified.safetensors"
+download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_clothes" "omnitry_v1_clothes.safetensors"
 
 # Step 8: Install Python requirements
 log_info "Installing Python requirements..."
