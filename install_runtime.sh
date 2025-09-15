@@ -85,7 +85,8 @@ if [ -d "$REPO_DIR" ]; then
 
         # Check if remote is correct
         current_remote=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ "$current_remote" == *"/Kunbyte-AI/OmniTry.git" ]]; then
+        if [[ "$current_remote" == *"/Kunbyte-AI/OmniTry.git" ]]
+then
             log_info "Correct remote already configured"
             # Try to pull latest changes if possible
             log_info "Attempting to pull latest changes..."
@@ -108,7 +109,6 @@ else
     retry_command "git clone $REPO_URL $REPO_DIR"
 fi
 
-cd $REPO_DIR
 log_info "Changed to repository directory: $(pwd)"
 
 # Step 5: Create checkpoint directory
@@ -117,7 +117,9 @@ mkdir -p checkpoints
 
 # Step 6: Download Hugging Face models
 log_info "Setting up Hugging Face CLI..."
-pip install huggingface-hub
+pip install huggingface-hub[cli]
+
+export HF_HUB_ENABLE_HF_TRANSFER=1
 
 # Function to download model with retry
 download_model() {
@@ -131,8 +133,16 @@ download_model() {
 
     log_info "Downloading model: $model_id to $local_path"
 
-    # Try using huggingface-hub first
-    if retry_command "python -c \"from huggingface_hub import snapshot_download; snapshot_download(repo_id='$model_id', local_dir='$local_path', allow_patterns=['*.safetensors', '*.json', '*.txt'])\""; then
+    # Try using hf cli first
+    if retry_command "hf download $model_id --local-dir $local_path"; then
+        log_info "Successfully downloaded $model_id"
+        return 0
+    fi
+
+    # Fallback to python
+    log_warn "hf download failed, trying with python..."
+    if retry_command "python -c \"from huggingface_hub import snapshot_download; snapshot_download(repo_id='$model_id', local_dir='$local_path', allow_patterns=['*.safetensors', '*.json', '*.txt'])\""
+then
         log_info "Successfully downloaded $model_id"
         return 0
     fi

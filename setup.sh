@@ -96,7 +96,8 @@ if [ -d "$REPO_DIR" ]; then
 
         # Check if remote is correct
         current_remote=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ "$current_remote" == *"/Kunbyte-AI/OmniTry.git" ]]; then
+        if [[ "$current_remote" == *"/Kunbyte-AI/OmniTry.git" ]]
+        then
             log_info "Correct remote already configured"
             # Try to pull latest changes if possible
             log_info "Attempting to pull latest changes..."
@@ -119,7 +120,6 @@ else
     retry_command "git clone $REPO_URL $REPO_DIR"
 fi
 
-cd $REPO_DIR
 log_info "Changed to repository directory: $(pwd)"
 
 # Step 5: Create checkpoint directory
@@ -131,6 +131,8 @@ log_info "Installing HuggingFace Hub..."
 retry_command "pip install huggingface_hub[cli]"
 
 # Step 7: Download models with retry logic
+export HF_HUB_ENABLE_HF_TRANSFER=1
+
 download_model() {
     local model_id="$1"
     local local_path="$2"
@@ -143,15 +145,16 @@ download_model() {
 
     log_info "Downloading model: $model_id"
 
-    # Try huggingface-hub first
-    if retry_command "python -c \"from huggingface_hub import hf_hub_download; hf_hub_download(repo_id='$model_id', filename='$filename', local_dir='$local_path')\""; then
-        log_info "Successfully downloaded $filename"
+    # Try hf CLI first
+    if retry_command "hf download $model_id $filename --local-dir $local_path"; then
+        log_info "Successfully downloaded $filename using hf CLI"
         return 0
     fi
 
-    # Try hf CLI as fallback
-    if retry_command "hf download $model_id $filename --local-dir $local_path"; then
-        log_info "Successfully downloaded $filename using hf CLI"
+    # Fallback to python
+    log_warn "hf download failed, trying python..."
+    if retry_command "python -c \"from huggingface_hub import hf_hub_download; hf_hub_download(repo_id='$model_id', filename='$filename', local_dir='$local_path')\""; then
+        log_info "Successfully downloaded $filename"
         return 0
     fi
 
@@ -176,21 +179,23 @@ download_model_directory() {
 
     log_info "Downloading model directory: $model_id"
 
-    # Try huggingface-hub snapshot download
-    if retry_command "python -c \"from huggingface_hub import snapshot_download; snapshot_download(repo_id='$model_id', local_dir='$local_path')\""; then
-        log_info "Successfully downloaded model directory: $model_id"
+    # Try hf CLI first
+    if retry_command "hf download $model_id --local-dir $local_path"; then
+        log_info "Successfully downloaded model directory using hf CLI"
         return 0
     fi
 
-    # Try hf CLI as fallback
-    if retry_command "hf download $model_id --local-dir $local_path"; then
-        log_info "Successfully downloaded model directory using hf CLI"
+    # Fallback to python
+    log_warn "hf download failed, trying python..."
+    if retry_command "python -c \"from huggingface_hub import snapshot_download; snapshot_download(repo_id='$model_id', local_dir='$local_path')\""; then
+        log_info "Successfully downloaded model directory: $model_id"
         return 0
     fi
 
     log_error "Failed to download model directory: $model_id"
     return 1
 }
+
 
 # Download models
 download_model_directory "black-forest-labs/FLUX.1-Fill-dev" "checkpoints/FLUX.1-Fill-dev"
