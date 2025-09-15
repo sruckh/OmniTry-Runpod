@@ -159,10 +159,43 @@ download_model() {
     return 1
 }
 
+download_model_directory() {
+    local model_id="$1"
+    local local_path="$2"
+
+    if [ -d "$local_path" ]; then
+        log_info "Model directory already exists at $local_path, checking contents..."
+        if [ -f "$local_path/config.json" ]; then
+            log_info "Model directory appears complete, skipping download"
+            return 0
+        else
+            log_warn "Model directory exists but appears incomplete, redownloading..."
+            rm -rf "$local_path"
+        fi
+    fi
+
+    log_info "Downloading model directory: $model_id"
+
+    # Try huggingface-hub snapshot download
+    if retry_command "python -c \"from huggingface_hub import snapshot_download; snapshot_download(repo_id='$model_id', local_dir='$local_path')\""; then
+        log_info "Successfully downloaded model directory: $model_id"
+        return 0
+    fi
+
+    # Try hf CLI as fallback
+    if retry_command "hf download $model_id --local-dir $local_path"; then
+        log_info "Successfully downloaded model directory using hf CLI"
+        return 0
+    fi
+
+    log_error "Failed to download model directory: $model_id"
+    return 1
+}
+
 # Download models
-download_model "black-forest-labs/FLUX.1-Fill-dev" "checkpoints/FLUX.1-Fill-dev" "model_index.json"
-download_model "Kunbyte/OmniTry" "checkpoints" "omnitry_v1_unified.safetensors"
-download_model "Kunbyte/OmniTry" "checkpoints" "omnitry_v1_clothes.safetensors"
+download_model_directory "black-forest-labs/FLUX.1-Fill-dev" "checkpoints/FLUX.1-Fill-dev"
+download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_unified"
+download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_clothes"
 
 # Step 8: Install Python requirements
 log_info "Installing Python requirements..."
