@@ -80,6 +80,7 @@ log_info "Step 6: Installing all Python dependencies..."
 retry_command "conda install pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia -y"
 retry_command "pip install huggingface-hub hf_transfer[cli]"
 retry_command "pip install -r requirements.txt"
+retry_command "pip install protobuf"
 FLASH_ATTENTION_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl"
 if ! retry_command "pip install --no-cache-dir $FLASH_ATTENTION_URL"; then
     log_warn "Flash Attention installation failed, continuing without it..."
