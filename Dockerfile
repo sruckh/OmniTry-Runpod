@@ -10,6 +10,7 @@ WORKDIR /workspace
 # Copy necessary files
 COPY install_runtime.sh /workspace/install_runtime.sh
 COPY configs /workspace/configs
+COPY omnitry /workspace/omnitry
 
 # Make setup script executable
 RUN chmod +x /workspace/install_runtime.sh
