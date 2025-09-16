@@ -21,6 +21,8 @@ from omnitry.pipelines.pipeline_flux_fill import FluxFillPipeline
 device = torch.device('cuda:0')
 weight_dtype = torch.bfloat16
 args = OmegaConf.load('configs/omnitry_v1_unified.yaml')
+# Convert to a plain dict so Gradio components receive JSON-serializable choices
+OBJECT_MAP = dict(OmegaConf.to_container(args.object_map, resolve=True))
 
 # Global variable to track current LoRA model
 current_lora_model = "unified"
@@ -168,7 +170,7 @@ def generate(person_image, object_image, object_class, lora_model, steps=20, gui
     object_image_padded[:, min_y: min_y + new_h, min_x: min_x + new_w] = object_image
 
     # prepare prompts & conditions
-    prompts = [args.object_map[object_class]] * 2
+    prompts = [OBJECT_MAP[object_class]] * 2
     img_cond = torch.stack([person_image, object_image_padded]).to(dtype=weight_dtype, device=device) 
     mask = torch.zeros_like(img_cond).to(img_cond)
 
@@ -198,7 +200,7 @@ if __name__ == '__main__':
 
             with gr.Column():
                 object_image = gr.Image(type="pil", label="Object Image", height=800)
-                object_class = gr.Dropdown(label='Object Class', choices=args.object_map.keys())
+                object_class = gr.Dropdown(label='Object Class', choices=list(OBJECT_MAP.keys()))
 
             with gr.Column():
                 image_out = gr.Image(type="pil", label="Output", height=800)
