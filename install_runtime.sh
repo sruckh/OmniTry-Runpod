@@ -86,12 +86,44 @@ if ! retry_command "pip install --no-cache-dir $FLASH_ATTENTION_URL"; then
     log_warn "Flash Attention installation failed, continuing without it..."
 fi
 
-log_info "Step 7: Copying local configs..."
+log_info "Step 7: Copying local configs and pipeline files..."
 cp -r /workspace/configs/* ./configs/
+cp /workspace/omnitry/pipelines/pipeline_flux_fill.py ./omnitry/pipelines/pipeline_flux_fill.py
+cp /workspace/omnitry/pipelines/pipeline_flux.py ./omnitry/pipelines/pipeline_flux.py
 
 log_info "Step 8: Downloading models..."
 export HF_HUB_ENABLE_HF_TRANSFER=1
-download_model() {
+
+download_model_file() {
+    local model_id="$1"
+    local local_path="$2"
+    local filename="$3"
+
+    if [ -f "$local_path/$filename" ]; then
+        log_info "Model file already exists at $local_path/$filename, skipping download"
+        return 0
+    fi
+
+    log_info "Downloading model file: $filename from $model_id"
+
+    # Try hf CLI first
+    if retry_command "hf download $model_id $filename --local-dir $local_path"; then
+        log_info "Successfully downloaded $filename using hf CLI"
+        return 0
+    fi
+
+    # Fallback to python
+    log_warn "hf download failed, trying python..."
+    if retry_command "python -c \"from huggingface_hub import hf_hub_download; hf_hub_download(repo_id='$model_id', filename='$filename', local_dir='$local_path')\""; then
+        log_info "Successfully downloaded $filename"
+        return 0
+    fi
+
+    log_error "Failed to download $filename"
+    return 1
+}
+
+download_model_directory() {
     local model_id="$1"
     local local_path="$2"
 
@@ -100,7 +132,7 @@ download_model() {
         return 0
     fi
 
-    log_info "Downloading model: $model_id to $local_path"
+    log_info "Downloading model directory: $model_id to $local_path"
 
     # Try using hf cli first
     if retry_command "hf download $model_id --local-dir $local_path"; then
@@ -118,7 +150,8 @@ download_model() {
 
     # Fallback to git lfs if available
     log_warn "huggingface-hub failed, trying git lfs..."
-    if command -v git-lfs &> /dev/null; then
+    if command -v git-lfs &> /dev/null;
+    then
         if retry_command "git lfs clone $model_id $local_path"; then
             log_info "Successfully downloaded $model_id using git lfs"
             return 0
@@ -129,9 +162,10 @@ download_model() {
     return 1
 }
 
-download_model "black-forest-labs/FLUX.1-Fill-dev" "checkpoints/FLUX.1-Fill-dev"
-download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_unified"
-download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_clothes"
+download_model_directory "black-forest-labs/FLUX.1-Fill-dev" "checkpoints/FLUX.1-Fill-dev"
+download_model_file "Kunbyte/OmniTry" "checkpoints" "omnitry_v1_unified.safetensors"
+download_model_file "Kunbyte/OmniTry" "checkpoints" "omnitry_v1_clothes.safetensors"
+
 
 
 log_info "✅ Installation complete! Starting Gradio app..."
