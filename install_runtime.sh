@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Robust runtime installation script for OmniTry on RunPod
-set -e  # Exit on any error
+# A robust runtime installation script for OmniTry on RunPod.
+# This script is designed to be clean, efficient, and to follow a logical order of operations.
 
+set -e
 echo "🚀 Starting OmniTry installation..."
 
 # Color codes for output
@@ -47,92 +48,48 @@ retry_command() {
     done
 }
 
-# Step 1: Install system dependencies if not already installed
-log_info "Installing system dependencies..."
-apt-get update
-apt-get install -y software-properties-common
-apt-get update
-apt-get install -y python-is-python3 python3-pip git wget curl
+log_info "Step 1: Installing essential system dependencies..."
+apt-get update && apt-get install -y git wget curl
 
-# Step 2: Install miniconda if not already installed
+log_info "Step 2: Installing and setting up Miniconda..."
 if [ ! -d "$HOME/miniconda3" ]; then
-    log_info "Installing Miniconda..."
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p $HOME/miniconda3
     rm miniconda.sh
-    source $HOME/miniconda3/bin/activate
-    conda init
-else
-    log_info "Miniconda already installed, activating..."
-    source $HOME/miniconda3/bin/activate
 fi
+source $HOME/miniconda3/bin/activate
+conda init
 
-# Accept conda Terms of Service
-log_info "Accepting conda Terms of Service..."
+log_info "Step 3: Accepting conda Terms of Service..."
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
-# Step 3: Install PyTorch
-log_info "Installing PyTorch..."
-retry_command "conda install pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia -y"
-
-# Step 4: Handle repository clone
+log_info "Step 4: Cloning the OmniTry repository..."
 REPO_URL="https://github.com/Kunbyte-AI/OmniTry.git"
 REPO_DIR="OmniTry"
-
-if [ -d "$REPO_DIR" ]; then
-    log_warn "Repository directory $REPO_DIR already exists"
-
-    # Check if it's a git repository
-    if [ -d "$REPO_DIR/.git" ]; then
-        log_info "Git repository found, checking status..."
-        cd $REPO_DIR
-
-        # Check if remote is correct
-        current_remote=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ "$current_remote" == *"/Kunbyte-AI/OmniTry.git" ]]; then
-then
-            log_info "Correct remote already configured"
-            # Try to pull latest changes if possible
-            log_info "Attempting to pull latest changes..."
-            git pull origin main || log_warn "Could not pull latest changes, continuing with existing code"
-        else
-            log_warn "Remote URL mismatch, removing directory and recloning..."
-            cd ..
-            rm -rf $REPO_DIR
-            log_info "Cloning repository..."
-            retry_command "git clone $REPO_URL $REPO_DIR"
-        fi
-    else
-        log_warn "Directory exists but is not a git repository, removing and recloning..."
-        rm -rf $REPO_DIR
-        log_info "Cloning repository..."
-        retry_command "git clone $REPO_URL $REPO_DIR"
-    fi
-else
-    log_info "Cloning repository..."
+if [ ! -d "$REPO_DIR" ]; then
     retry_command "git clone $REPO_URL $REPO_DIR"
 fi
+cd $REPO_DIR
 
-log_info "Changed to repository directory: $(pwd)"
+log_info "Step 5: Creating and activating the conda environment..."
+conda create -n omnitry python=3.10 -y
+source activate omnitry
 
-# Copy local configs to the cloned repo
-log_info "Copying local configs..."
+log_info "Step 6: Installing all Python dependencies..."
+retry_command "conda install pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.4 -c pytorch -c nvidia -y"
+retry_command "pip install huggingface-hub hf_transfer[cli]"
+retry_command "pip install -r requirements.txt"
+FLASH_ATTENTION_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl"
+if ! retry_command "pip install --no-cache-dir $FLASH_ATTENTION_URL"; then
+    log_warn "Flash Attention installation failed, continuing without it..."
+fi
+
+log_info "Step 7: Copying local configs..."
 cp -r /workspace/configs/* ./configs/
 
-# Step 5: Create checkpoint directory
-log_info "Creating checkpoint directory..."
-mkdir -p checkpoints
-
-# Step 6: Download Hugging Face models
-log_info "Setting up Hugging Face CLI..."
-pip install huggingface-hub
-log_info "Installing hf_transfer for faster downloads..."
-pip install hf_transfer[cli]
-
+log_info "Step 8: Downloading models..."
 export HF_HUB_ENABLE_HF_TRANSFER=1
-
-# Function to download model with retry
 download_model() {
     local model_id="$1"
     local local_path="$2"
@@ -153,7 +110,7 @@ download_model() {
     # Fallback to python
     log_warn "hf download failed, trying with python..."
     if retry_command "python -c \"from huggingface_hub import snapshot_download; snapshot_download(repo_id='$model_id', local_dir='$local_path', allow_patterns=['*.safetensors', '*.json', '*.txt'])\""
-then
+    then
         log_info "Successfully downloaded $model_id"
         return 0
     fi
@@ -171,48 +128,10 @@ then
     return 1
 }
 
-# Download models
 download_model "black-forest-labs/FLUX.1-Fill-dev" "checkpoints/FLUX.1-Fill-dev"
 download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_unified"
 download_model "Kunbyte/OmniTry" "checkpoints/omnitry_v1_clothes"
 
-# Step 7: Install Python requirements
-log_info "Installing Python requirements..."
-retry_command "pip install --timeout=600 --resume-retries 5 -r requirements.txt"
 
-# Step 8: Install Flash Attention with retry logic
-log_info "Installing Flash Attention..."
-FLASH_ATTENTION_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl"
-
-# Try multiple installation methods
-if retry_command "pip install --no-cache-dir $FLASH_ATTENTION_URL"; then
-    log_info "Flash Attention installed successfully"
-elif retry_command "pip install --no-cache-dir --upgrade $FLASH_ATTENTION_URL"; then
-    log_info "Flash Attention installed successfully with --upgrade"
-elif retry_command "pip install --no-cache-dir --timeout=600 $FLASH_ATTENTION_URL"; then
-    log_info "Flash Attention installed successfully with extended timeout"
-else
-    log_warn "Flash Attention installation failed, continuing without it..."
-    log_warn "Note: The application may run slower without Flash Attention"
-fi
-
-# Step 9: Verify installation
-log_info "Verifying installation..."
-
-# Check if gradio_demo.py exists
-if [ ! -f "gradio_demo.py" ]; then
-    log_error "gradio_demo.py not found!"
-    exit 1
-fi
-
-# Check if checkpoint files exist
-if [ ! -d "checkpoints" ]; then
-    log_error "Checkpoints directory not found!"
-    exit 1
-fi
-
-log_info "Installation completed successfully!"
-log_info "Starting OmniTry application..."
-
-# Start the application
+log_info "✅ Installation complete! Starting Gradio app..."
 exec python gradio_demo.py
