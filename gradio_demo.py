@@ -51,8 +51,8 @@ transformer = FluxTransformer2DModel.from_pretrained(f'{args.model_root}/transfo
 pipeline = FluxFillPipeline.from_pretrained(args.model_root, transformer=transformer.eval(), torch_dtype=weight_dtype)
 
 # VRAM saving, comment the follwing lines if you have sufficient memory
-pipeline.enable_model_cpu_offload()
-pipeline.vae.enable_tiling()
+#pipeline.enable_model_cpu_offload()
+#pipeline.vae.enable_tiling()
 
 
 # insert LoRA
