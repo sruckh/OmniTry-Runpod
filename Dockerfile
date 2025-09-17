@@ -11,6 +11,7 @@ WORKDIR /workspace
 COPY install_runtime.sh /workspace/install_runtime.sh
 COPY configs /workspace/configs
 COPY omnitry /workspace/omnitry
+COPY gradio_demo.py /workspace/gradio_demo.py
 
 # Make setup script executable
 RUN chmod +x /workspace/install_runtime.sh

@@ -90,6 +90,9 @@ log_info "Step 7: Copying local configs and pipeline files..."
 cp -r /workspace/configs/* ./configs/
 cp /workspace/omnitry/pipelines/pipeline_flux_fill.py ./omnitry/pipelines/pipeline_flux_fill.py
 cp /workspace/omnitry/pipelines/pipeline_flux.py ./omnitry/pipelines/pipeline_flux.py
+if [ -f /workspace/gradio_demo.py ]; then
+    cp /workspace/gradio_demo.py ./gradio_demo.py
+fi
 
 log_info "Step 8: Downloading models..."
 export HF_HUB_ENABLE_HF_TRANSFER=1
