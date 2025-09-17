@@ -11,8 +11,21 @@ import peft
 from peft import LoraConfig
 from safetensors import safe_open
 from omegaconf import OmegaConf
+from gradio_client import utils as gradio_client_utils
 import os
 os.environ["GRADIO_TEMP_DIR"] = ".gradio"
+
+# Gradio's schema helper can receive literal True/False for additionalProperties; guard here to avoid crashes.
+_original_json_schema_to_python_type = gradio_client_utils._json_schema_to_python_type
+
+
+def _safe_json_schema_to_python_type(schema, defs=None):
+    if isinstance(schema, bool):
+        return "Any" if schema else "No additional properties"
+    return _original_json_schema_to_python_type(schema, defs)
+
+
+gradio_client_utils._json_schema_to_python_type = _safe_json_schema_to_python_type
 
 from omnitry.models.transformer_flux import FluxTransformer2DModel
 from omnitry.pipelines.pipeline_flux_fill import FluxFillPipeline
